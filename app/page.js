@@ -1,184 +1,196 @@
+
 "use client";
 import { useEffect, useMemo, useState } from "react";
 
-export default function Dashboard() {
-  // ==== State ====
-  const [expenses, setExpenses] = useState([]);
-  const [form, setForm] = useState({ title: "", amount: "", category: "General", date: "" });
+const CATEGORIES = ["General", "Food", "Travel", "Bills", "Shopping", "Other"];
+const STORAGE_KEY = "spendwise:expenses";
 
-  // ==== Load/Save to localStorage ====
+export default function Dashboard() {
+  // state 
+  const [expenses, setExpenses] = useState([]);
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [date, setDate] = useState("");
+
+  // load/save localStorage 
   useEffect(() => {
-    const saved = typeof window !== "undefined" && localStorage.getItem("spendwise:expenses");
-    if (saved) setExpenses(JSON.parse(saved));
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setExpenses(JSON.parse(raw));
+    } catch {}
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("spendwise:expenses", JSON.stringify(expenses));
-    }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    } catch {}
   }, [expenses]);
 
-  // ==== Derived totals ====
-  const total = useMemo(
-    () => expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0),
-    [expenses]
-  );
+  //derived stats
+  const { total, count, avg } = useMemo(() => {
+    const count = expenses.length;
+    const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const avg = count ? total / count : 0;
+    return { total, count, avg };
+  }, [expenses]);
 
-  // ==== Handlers ====
-  const addExpense = (e) => {
+  // helpers
+  function fmtMoney(n) {
+    return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
+  function todayISO() {
+    const d = new Date();
+    return d.toISOString().slice(0, 10); // yyyy-mm-dd
+  }
+
+  // actions
+  function addExpense(e) {
     e.preventDefault();
-    if (!form.title || !form.amount) return;
+    const amt = Number(amount);
+    if (!title.trim()) return alert("Please enter a title.");
+    if (!Number.isFinite(amt) || amt <= 0) return alert("Enter a valid amount.");
+    const when = date || todayISO();
 
     const newItem = {
       id: crypto.randomUUID(),
-      title: form.title.trim(),
-      amount: Number(form.amount),
-      category: form.category,
-      date: form.date || new Date().toISOString().slice(0, 10),
+      title: title.trim(),
+      amount: amt,
+      category,
+      date: when,
+      createdAt: Date.now(),
     };
     setExpenses((prev) => [newItem, ...prev]);
-    setForm({ title: "", amount: "", category: "General", date: "" });
-  };
 
-  const removeExpense = (id) => setExpenses((prev) => prev.filter((e) => e.id !== id));
+    // reset form
+    setTitle("");
+    setAmount("");
+    setCategory(CATEGORIES[0]);
+    setDate("");
+  }
 
-  // ==== UI ====
+  function removeExpense(id) {
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  // UI 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-100">
-      {/* Top bar */}
-      <header className="border-b border-neutral-800 sticky top-0 bg-neutral-950/70 backdrop-blur">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-semibold tracking-tight">Spendwise</h1>
-          <div className="text-sm text-neutral-400">Total Spent: <span className="text-neutral-100 font-medium">${total.toFixed(2)}</span></div>
+    <main className="min-h-screen p-6 text-neutral-200 bg-neutral-900">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold">Spendwise</h1>
+        <div className="text-sm">
+          Total Spent: <span className="font-semibold">{fmtMoney(total)}</span>
         </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 py-8 grid gap-8">
-        {/* Stat cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card title="Total Spent" value={`$${total.toFixed(2)}`} />
-          <Card title="Transactions" value={expenses.length} />
-          <Card title="Avg / Txn" value={`$${(expenses.length ? total / expenses.length : 0).toFixed(2)}`} />
-        </section>
-
-        {/* Add expense form */}
-        <section className="grid gap-4">
-          <h2 className="text-lg font-semibold">Add Expense</h2>
-          <form onSubmit={addExpense} className="grid gap-3 sm:grid-cols-4 bg-neutral-900 p-4 rounded-xl border border-neutral-800">
-            <input
-              className="sm:col-span-2 rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700"
-              placeholder="Title (e.g., Groceries)"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-            <input
-              className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700"
-              placeholder="Amount"
-              type="number"
-              step="0.01"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-            />
-            <select
-              className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            >
-              <option>General</option>
-              <option>Food</option>
-              <option>Transport</option>
-              <option>Bills</option>
-              <option>Shopping</option>
-              <option>Health</option>
-            </select>
-            <input
-              className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700 sm:col-span-2"
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-            />
-            <button
-              type="submit"
-              className="sm:col-span-2 rounded-lg bg-white text-black font-medium px-4 py-2 hover:opacity-90 transition"
-            >
-              Add
-            </button>
-          </form>
-        </section>
-
-        {/* Table */}
-        <section className="grid gap-4">
-          <h2 className="text-lg font-semibold">Recent Expenses</h2>
-          <div className="overflow-x-auto rounded-xl border border-neutral-800">
-            <table className="min-w-full text-sm">
-              <thead className="bg-neutral-900 text-neutral-300">
-                <tr>
-                  <Th>Title</Th>
-                  <Th>Category</Th>
-                  <Th>Date</Th>
-                  <Th align="right">Amount</Th>
-                  <Th align="center">Action</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center p-6 text-neutral-400">
-                      No expenses yet — add one above.
-                    </td>
-                  </tr>
-                ) : (
-                  expenses.map((e) => (
-                    <tr key={e.id} className="border-t border-neutral-800">
-                      <Td>{e.title}</Td>
-                      <Td>{e.category}</Td>
-                      <Td>{e.date}</Td>
-                      <Td align="right">${Number(e.amount).toFixed(2)}</Td>
-                      <Td align="center">
-                        <button
-                          onClick={() => removeExpense(e.id)}
-                          className="text-red-300 hover:text-red-200 underline underline-offset-2"
-                        >
-                          Remove
-                        </button>
-                      </Td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
       </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <StatCard label="Total Spent" value={fmtMoney(total)} />
+        <StatCard label="Transactions" value={count} />
+        <StatCard label="Avg / Trxn" value={fmtMoney(avg)} />
+      </div>
+
+      {/* Add Expense */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">Add Expense</h2>
+        <form
+          onSubmit={addExpense}
+          className="grid grid-cols-1 md:grid-cols-[1fr_160px_160px_160px_120px] gap-3 bg-neutral-800 p-4 rounded-xl"
+        >
+          <input
+            className="bg-neutral-900 rounded-md px-3 py-2 outline-none"
+            placeholder="Title (e.g., Groceries)"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <input
+            className="bg-neutral-900 rounded-md px-3 py-2 outline-none"
+            placeholder="Amount"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+          <select
+            className="bg-neutral-900 rounded-md px-3 py-2 outline-none"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <input
+            className="bg-neutral-900 rounded-md px-3 py-2 outline-none"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            max={todayISO()}
+          />
+          <button className="bg-white text-black rounded-md px-4 py-2 font-medium hover:opacity-90">
+            Add
+          </button>
+        </form>
+      </section>
+
+      {/* Recent Expenses */}
+      <section>
+        <h2 className="text-lg font-semibold mb-3">Recent Expenses</h2>
+        <div className="bg-neutral-800 rounded-xl">
+          <div className="grid grid-cols-[1fr_140px_140px_120px_100px] px-4 py-3 text-sm border-b border-neutral-700">
+            <div>Title</div>
+            <div>Category</div>
+            <div>Date</div>
+            <div>Amount</div>
+            <div>Action</div>
+          </div>
+
+          {expenses.length === 0 ? (
+            <div className="px-4 py-8 text-sm text-neutral-400">
+              No expenses yet — add one above.
+            </div>
+          ) : (
+            <ul className="divide-y divide-neutral-700">
+              {expenses.map((e) => (
+                <li
+                  key={e.id}
+                  className="grid grid-cols-[1fr_140px_140px_120px_100px] px-4 py-3 items-center text-sm"
+                >
+                  <div className="truncate">{e.title}</div>
+                  <div>{e.category}</div>
+                  <div>
+                    {new Date(e.date).toLocaleDateString(undefined, {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                    })}
+                  </div>
+                  <div className="tabular-nums">{fmtMoney(e.amount)}</div>
+                  <div>
+                    <button
+                      onClick={() => removeExpense(e.id)}
+                      className="rounded-md px-2 py-1 bg-red-500/80 hover:bg-red-500 text-white"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
     </main>
   );
 }
 
-/* --- tiny presentational helpers --- */
-function Card({ title, value }) {
+function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-      <div className="text-neutral-400 text-sm">{title}</div>
-      <div className="text-2xl font-semibold mt-1">{value}</div>
+    <div className="bg-neutral-800 rounded-xl p-5">
+      <div className="text-neutral-400 text-sm">{label}</div>
+      <div className="text-2xl font-semibold mt-1">{String(value)}</div>
     </div>
-  );
-}
-
-function Th({ children, align = "left" }) {
-  return (
-    <th className={`px-4 py-3 text-${align} font-medium`}>
-      <div className={align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"}>
-        {children}
-      </div>
-    </th>
-  );
-}
-function Td({ children, align = "left" }) {
-  return (
-    <td className={`px-4 py-3`}>
-      <div className={align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"}>
-        {children}
-      </div>
-    </td>
   );
 }
