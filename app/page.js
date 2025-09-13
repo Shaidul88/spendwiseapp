@@ -1,103 +1,184 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useMemo, useState } from "react";
 
-export default function Home() {
+export default function Dashboard() {
+  // ==== State ====
+  const [expenses, setExpenses] = useState([]);
+  const [form, setForm] = useState({ title: "", amount: "", category: "General", date: "" });
+
+  // ==== Load/Save to localStorage ====
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("spendwise:expenses");
+    if (saved) setExpenses(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("spendwise:expenses", JSON.stringify(expenses));
+    }
+  }, [expenses]);
+
+  // ==== Derived totals ====
+  const total = useMemo(
+    () => expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0),
+    [expenses]
+  );
+
+  // ==== Handlers ====
+  const addExpense = (e) => {
+    e.preventDefault();
+    if (!form.title || !form.amount) return;
+
+    const newItem = {
+      id: crypto.randomUUID(),
+      title: form.title.trim(),
+      amount: Number(form.amount),
+      category: form.category,
+      date: form.date || new Date().toISOString().slice(0, 10),
+    };
+    setExpenses((prev) => [newItem, ...prev]);
+    setForm({ title: "", amount: "", category: "General", date: "" });
+  };
+
+  const removeExpense = (id) => setExpenses((prev) => prev.filter((e) => e.id !== id));
+
+  // ==== UI ====
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-screen bg-neutral-950 text-neutral-100">
+      {/* Top bar */}
+      <header className="border-b border-neutral-800 sticky top-0 bg-neutral-950/70 backdrop-blur">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <h1 className="text-xl font-semibold tracking-tight">Spendwise</h1>
+          <div className="text-sm text-neutral-400">Total Spent: <span className="text-neutral-100 font-medium">${total.toFixed(2)}</span></div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </header>
+
+      <div className="max-w-5xl mx-auto px-4 py-8 grid gap-8">
+        {/* Stat cards */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card title="Total Spent" value={`$${total.toFixed(2)}`} />
+          <Card title="Transactions" value={expenses.length} />
+          <Card title="Avg / Txn" value={`$${(expenses.length ? total / expenses.length : 0).toFixed(2)}`} />
+        </section>
+
+        {/* Add expense form */}
+        <section className="grid gap-4">
+          <h2 className="text-lg font-semibold">Add Expense</h2>
+          <form onSubmit={addExpense} className="grid gap-3 sm:grid-cols-4 bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+            <input
+              className="sm:col-span-2 rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700"
+              placeholder="Title (e.g., Groceries)"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+            <input
+              className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700"
+              placeholder="Amount"
+              type="number"
+              step="0.01"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+            />
+            <select
+              className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            >
+              <option>General</option>
+              <option>Food</option>
+              <option>Transport</option>
+              <option>Bills</option>
+              <option>Shopping</option>
+              <option>Health</option>
+            </select>
+            <input
+              className="rounded-lg bg-neutral-950 border border-neutral-800 px-3 py-2 outline-none focus:ring-2 focus:ring-neutral-700 sm:col-span-2"
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
+            <button
+              type="submit"
+              className="sm:col-span-2 rounded-lg bg-white text-black font-medium px-4 py-2 hover:opacity-90 transition"
+            >
+              Add
+            </button>
+          </form>
+        </section>
+
+        {/* Table */}
+        <section className="grid gap-4">
+          <h2 className="text-lg font-semibold">Recent Expenses</h2>
+          <div className="overflow-x-auto rounded-xl border border-neutral-800">
+            <table className="min-w-full text-sm">
+              <thead className="bg-neutral-900 text-neutral-300">
+                <tr>
+                  <Th>Title</Th>
+                  <Th>Category</Th>
+                  <Th>Date</Th>
+                  <Th align="right">Amount</Th>
+                  <Th align="center">Action</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center p-6 text-neutral-400">
+                      No expenses yet — add one above.
+                    </td>
+                  </tr>
+                ) : (
+                  expenses.map((e) => (
+                    <tr key={e.id} className="border-t border-neutral-800">
+                      <Td>{e.title}</Td>
+                      <Td>{e.category}</Td>
+                      <Td>{e.date}</Td>
+                      <Td align="right">${Number(e.amount).toFixed(2)}</Td>
+                      <Td align="center">
+                        <button
+                          onClick={() => removeExpense(e.id)}
+                          className="text-red-300 hover:text-red-200 underline underline-offset-2"
+                        >
+                          Remove
+                        </button>
+                      </Td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+/* --- tiny presentational helpers --- */
+function Card({ title, value }) {
+  return (
+    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+      <div className="text-neutral-400 text-sm">{title}</div>
+      <div className="text-2xl font-semibold mt-1">{value}</div>
     </div>
+  );
+}
+
+function Th({ children, align = "left" }) {
+  return (
+    <th className={`px-4 py-3 text-${align} font-medium`}>
+      <div className={align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"}>
+        {children}
+      </div>
+    </th>
+  );
+}
+function Td({ children, align = "left" }) {
+  return (
+    <td className={`px-4 py-3`}>
+      <div className={align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"}>
+        {children}
+      </div>
+    </td>
   );
 }
