@@ -1,61 +1,55 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 
-const STORAGE_KEY = "spendwise:expenses";
+const KEY = "spendwise:expenses";
+
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
 
 export function useExpenses() {
-  const [expenses, setExpenses] = useState([]);
+  // ✅ Initialize from localStorage synchronously on first render
+  const [items, setItems] = useState(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const raw = localStorage.getItem(KEY);
+        return raw ? JSON.parse(raw) : [];
+      }
+    } catch {}
+    return [];
+  });
 
-  // load/save
+  // ✅ Persist only when items actually change (no early overwrite)
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setExpenses(JSON.parse(raw));
-    } catch {}
-  }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-    } catch {}
-  }, [expenses]);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(KEY, JSON.stringify(items));
+      }
+    } catch (e) {
+      console.warn("Failed to write local data:", e);
+    }
+  }, [items]);
 
-  // derived
   const stats = useMemo(() => {
-    const count = expenses.length;
-    const total = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+    const total = items.reduce((s, e) => s + e.amount, 0);
+    const count = items.length;
     const avg = count ? total / count : 0;
     return { total, count, avg };
-  }, [expenses]);
+  }, [items]);
 
-  // CRUD
-  function addExpense({ title, amount, category, date }) {
+  function addExpense({ title, amount, date, category, note }) {
     const amt = Number(amount);
-    if (!title?.trim()) throw new Error("Title required");
-    if (!Number.isFinite(amt) || amt <= 0) throw new Error("Amount invalid");
-    const when = date || new Date().toISOString().slice(0, 10);
-
-    setExpenses((prev) => [
-      {
-        id: crypto.randomUUID(),
-        title: title.trim(),
-        amount: amt,
-        category,
-        date: when,
-        createdAt: Date.now(),
-      },
-      ...prev,
-    ]);
+    setItems(prev => [{ id: uid(), title, amount: amt, date, category, note }, ...prev]);
   }
-
-  function removeExpense(id) {
-    setExpenses((prev) => prev.filter((e) => e.id !== id));
-  }
-
   function updateExpense(id, patch) {
-    setExpenses((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...patch } : e))
-    );
+    setItems(prev => prev.map(e => (e.id === id ? { ...e, ...patch } : e)));
+  }
+  function removeExpense(id) {
+    setItems(prev => prev.filter(e => e.id !== id));
+  }
+  function clearAll() {
+    if (confirm("Delete all expenses?")) setItems([]);
   }
 
-  return { expenses, stats, addExpense, removeExpense, updateExpense };
+  return { items, stats, addExpense, updateExpense, removeExpense, clearAll };
 }

@@ -46,3 +46,30 @@ body {
 
 /* helpers */
 .hidden { display:none; }
+
+
+/* Panels (cards, forms, filters) */
+.panel-dark {
+  @apply rounded-2xl bg-neutral-800 ring-1 ring-neutral-700 text-neutral-100;
+}
+
+/* Headings inside dark panels */
+.label-dark {
+  @apply text-sm text-neutral-300;
+}
+
+/* Inputs & selects */
+.input-dark {
+  @apply w-full rounded-xl px-3 py-2 bg-neutral-700 border border-neutral-600 text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500;
+}
+
+/* Buttons */
+.btn-primary {
+  @apply w-full rounded-xl py-2 bg-emerald-600 hover:bg-emerald-500 text-white;
+}
+.btn-secondary {
+  @apply text-sm px-2 py-1 rounded bg-neutral-700 text-neutral-100 hover:bg-neutral-600;
+}
+.btn-danger {
+  @apply text-sm px-2 py-1 rounded bg-red-600 text-white hover:bg-red-500;
+}
