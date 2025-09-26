@@ -1,10 +1,12 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
 import ExpenseList from "@/components/expenses/ExpenseList";
 import ExpenseFilters from "@/components/expenses/ExpenseFilters";
 import SummaryCards from "@/components/expenses/SummaryCards";
 import { useExpenses } from "@/hooks/useExpenses";
+import CategoryPieChart from "@/components/expenses/CategoryPieChart";
+import MonthlyBarChart from "@/components/expenses/MonthlyBarChart";
 
 export default function ExpensesPage() {
   const { items, addExpense, updateExpense, removeExpense, clearAll } = useExpenses();
@@ -16,6 +18,12 @@ export default function ExpensesPage() {
     min: "",
     max: "",
   });
+
+  // Ref to scroll to the form
+  const formRef = useRef(null);
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const view = useMemo(() => {
     let rows = [...items];
@@ -61,23 +69,45 @@ export default function ExpensesPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Expenses</h1>
-          <button
-            onClick={clearAll}
-            className="text-sm px-3 py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white"
-          >
-            Clear all
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={scrollToForm}
+              className="text-sm px-3 py-1.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              Add Expense
+            </button>
+            <button
+              onClick={clearAll}
+              className="text-sm px-3 py-1.5 rounded-xl bg-red-500 hover:bg-red-600 text-white"
+            >
+              Clear all
+            </button>
+          </div>
         </header>
 
-        <SummaryCards items={items} filteredTotal={view.total} />
+        <SummaryCards items={items} />
+
+        {/* Charts */}
+        <CategoryPieChart expenses={items} />
+        <MonthlyBarChart items={items} />
 
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="md:col-span-1">
+          {/* Form section (scroll target) */}
+          <div className="md:col-span-1" ref={formRef}>
             <ExpenseForm onSubmit={addExpense} />
           </div>
+
           <div className="md:col-span-2 space-y-4">
             <ExpenseFilters filters={filters} onChange={setFilters} items={items} />
-            <ExpenseList items={view.rows} onUpdate={updateExpense} onRemove={removeExpense} />
+
+            {/* Only the list scrolls */}
+            <div className="h-[60vh] overflow-y-auto pr-2 custom-scrollbar rounded-xl bg-neutral-900/20">
+              <ExpenseList
+                items={view.rows}
+                onUpdate={updateExpense}
+                onRemove={removeExpense}
+              />
+            </div>
           </div>
         </div>
       </div>
