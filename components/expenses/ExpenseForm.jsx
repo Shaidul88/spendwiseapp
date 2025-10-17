@@ -1,10 +1,17 @@
 "use client";
-import { useState } from "react";
-import { CATEGORIES, todayISO, money } from "@/lib/utils";
+import { useState, useRef } from "react";
+import { CATEGORIES, todayISO } from "@/lib/utils";
 
 export default function ExpenseForm({ onSubmit }) {
-  const [form, setForm] = useState({ title: "", amount: "", category: CATEGORIES[0], date: todayISO(), note: "" });
+  const [form, setForm] = useState({
+    title: "",
+    amount: "",
+    category: CATEGORIES[0],
+    date: todayISO(),
+    note: "",
+  });
   const [errors, setErrors] = useState({});
+  const formTopRef = useRef(null);
 
   function validate(f) {
     const e = {};
@@ -22,52 +29,80 @@ export default function ExpenseForm({ onSubmit }) {
     if (!ok) return;
     onSubmit({ ...form, amount: amt });
     setForm({ title: "", amount: "", category: CATEGORIES[0], date: todayISO(), note: "" });
+    formTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  const panel = "space-y-3 p-4 rounded-2xl bg-neutral-800 ring-1 ring-neutral-700 text-neutral-100";
-  const label = "text-sm text-neutral-300";
-  const input = "w-full rounded-xl px-3 py-2 bg-neutral-700 border border-neutral-600 text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500";
-  const select = input;
-
   return (
-    <form onSubmit={handleSubmit} className={panel}>
-      <h2 className="font-semibold">Add expense</h2>
-
-      <div className="space-y-1">
-        <label className={label}>Title</label>
-        <input className={input} value={form.title} onChange={(e)=>setForm({...form,title:e.target.value})} placeholder="Coffee" />
-        {errors.title && <p className="text-xs text-red-400">{errors.title}</p>}
+    <form onSubmit={handleSubmit} className="panel p-4 space-y-4" ref={formTopRef}>
+      <div className="flex items-center justify-between">
+        <h2 className="panel-header">Add Expense</h2>
+        <div className="badge">Local Save</div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className={label}>Amount</label>
-          <input className={input} value={form.amount} onChange={(e)=>setForm({...form,amount:e.target.value})} placeholder="3.75" />
-          {errors.amount && <p className="text-xs text-red-400">{errors.amount}</p>}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <label className="panel-header">Title</label>
+          <input
+            className="input mt-1"
+            value={form.title}
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            placeholder="Chipotle, Metrocard, Netflix…"
+          />
+          {errors.title && <p className="text-red-400 text-xs mt-1">{errors.title}</p>}
         </div>
-        <div className="space-y-1">
-          <label className={label}>Date</label>
-          <input type="date" className={input} value={form.date} onChange={(e)=>setForm({...form,date:e.target.value})} />
-          {errors.date && <p className="text-xs text-red-400">{errors.date}</p>}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <label className={label}>Category</label>
-          <select className={select} value={form.category} onChange={(e)=>setForm({...form,category:e.target.value})}>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        <div>
+          <label className="panel-header">Amount</label>
+          <input
+            className="input mt-1"
+            inputMode="decimal"
+            value={form.amount}
+            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+            placeholder="12.50"
+          />
+          {errors.amount && <p className="text-red-400 text-xs mt-1">{errors.amount}</p>}
+        </div>
+
+        <div>
+          <label className="panel-header">Category</label>
+          <select
+            className="select mt-1"
+            value={form.category}
+            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
         </div>
-        <div className="space-y-1">
-          <label className={label}>Note (optional)</label>
-          <input className={input} value={form.note} onChange={(e)=>setForm({...form,note:e.target.value})} placeholder="extra details" />
+
+        <div>
+          <label className="panel-header">Date</label>
+          <input
+            className="input mt-1"
+            type="date"
+            max={todayISO()}
+            value={form.date}
+            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+          />
+          {errors.date && <p className="text-red-400 text-xs mt-1">{errors.date}</p>}
         </div>
       </div>
 
-      <button className="w-full rounded-xl py-2 bg-emerald-600 hover:bg-emerald-500 text-white">
-        Save {form.amount && `(${money(Number(form.amount))})`}
-      </button>
+      <div>
+        <label className="panel-header">Note</label>
+        <textarea
+          className="input mt-1"
+          rows={2}
+          value={form.note}
+          onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+          placeholder="Optional details"
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <button className="btn btn-primary">Add Expense</button>
+      </div>
     </form>
   );
 }

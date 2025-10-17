@@ -1,55 +1,99 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 
-const KEY = "spendwise:expenses";
+const KEY = "spendwise:expenses:v1";
 
-function uid() {
-  return Math.random().toString(36).slice(2, 9);
+/* helpers */
+function uuid() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "id-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+function readStorage() {
+  try {
+    if (typeof window === "undefined") return [];
+    const raw = localStorage.getItem(KEY);
+    const val = raw ? JSON.parse(raw) : [];
+    return Array.isArray(val) ? val : [];
+  } catch {
+    return [];
+  }
+}
+function writeStorage(items) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(KEY, JSON.stringify(items));
+  } catch {}
 }
 
 export function useExpenses() {
-  // ✅ Initialize from localStorage synchronously on first render
-  const [items, setItems] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const raw = localStorage.getItem(KEY);
-        return raw ? JSON.parse(raw) : [];
-      }
-    } catch {}
-    return [];
-  });
+  const [items, setItems] = useState([]);     // hydrate on client
+  const hydrated = useRef(false);
 
-  // ✅ Persist only when items actually change (no early overwrite)
+  // Hydrate after client nav/render (next tick)
   useEffect(() => {
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(KEY, JSON.stringify(items));
-      }
-    } catch (e) {
-      console.warn("Failed to write local data:", e);
-    }
+    const t = setTimeout(() => {
+      setItems(readStorage());
+      hydrated.current = true;
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Recheck storage when tab regains focus (covers page switches)
+  useEffect(() => {
+    const onFocus = () => setItems(readStorage());
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  // Cross-tab sync
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === KEY) setItems(readStorage());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // Persist after hydrate when items change
+  useEffect(() => {
+    if (!hydrated.current) return;
+    writeStorage(items);
   }, [items]);
+
+  // Mutations (write immediately for durability)
+  const addExpense = useCallback((e) => {
+    setItems((prev) => {
+      const next = [{ id: uuid(), ...e }, ...prev];
+      writeStorage(next);
+      return next;
+    });
+  }, []);
+
+  const updateExpense = useCallback((id, patch) => {
+    setItems((prev) => {
+      const next = prev.map((it) => (it.id === id ? { ...it, ...patch } : it));
+      writeStorage(next);
+      return next;
+    });
+  }, []);
+
+  const removeExpense = useCallback((id) => {
+    setItems((prev) => {
+      const next = prev.filter((it) => it.id !== id);
+      writeStorage(next);
+      return next;
+    });
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setItems([]);
+    writeStorage([]);
+  }, []);
 
   const stats = useMemo(() => {
-    const total = items.reduce((s, e) => s + e.amount, 0);
-    const count = items.length;
-    const avg = count ? total / count : 0;
-    return { total, count, avg };
+    const total = items.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    return { count: items.length, total };
   }, [items]);
 
-  function addExpense({ title, amount, date, category, note }) {
-    const amt = Number(amount);
-    setItems(prev => [{ id: uid(), title, amount: amt, date, category, note }, ...prev]);
-  }
-  function updateExpense(id, patch) {
-    setItems(prev => prev.map(e => (e.id === id ? { ...e, ...patch } : e)));
-  }
-  function removeExpense(id) {
-    setItems(prev => prev.filter(e => e.id !== id));
-  }
-  function clearAll() {
-    if (confirm("Delete all expenses?")) setItems([]);
-  }
-
-  return { items, stats, addExpense, updateExpense, removeExpense, clearAll };
+  return { items, addExpense, updateExpense, removeExpense, clearAll, stats, hydrated: hydrated.current };
 }
