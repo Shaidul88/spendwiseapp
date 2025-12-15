@@ -9,6 +9,8 @@ const DEFAULTS = {
   theme: "dark",
   currency: "USD",
   locale: "en-US",
+  confirmDeletes: true,
+  enableHotkeys: true,
 };
 
 function readJSON(key, fallback) {

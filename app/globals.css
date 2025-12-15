@@ -2,17 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
-html, body { @apply bg-neutral-900 text-neutral-200; }
+:root {
+  color-scheme: dark;
+  --page-bg: radial-gradient(circle at 10% 20%, #0f172a 0, #0b1221 35%, #0a0f1c 100%);
+  --surface-1: #0f172a;
+  --surface-2: #111827;
+  --border: #1f2937;
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+  --accent: #6366f1;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: radial-gradient(circle at 10% 20%, #0f172a 0, #0b1221 35%, #0a0f1c 100%);
+  --surface-1: #0f172a;
+  --surface-2: #111827;
+  --border: #1f2937;
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+  --accent: #6366f1;
+}
+
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --page-bg: radial-gradient(circle at 20% 20%, #0a0f1c 0, #0e1528 45%, #0b1021 100%);
+  --surface-1: #0e1528;
+  --surface-2: #0f1c35;
+  --border: #1d2c4b;
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+  --accent: #7c3aed;
+}
+
+:root[data-theme="forest"] {
+  color-scheme: dark;
+  --page-bg: radial-gradient(circle at 20% 20%, #0b2f1a 0, #0a2415 40%, #081c10 100%);
+  --surface-1: #0f301c;
+  --surface-2: #113523;
+  --border: #1d4a2d;
+  --text-main: #ecfdf3;
+  --text-muted: #a7f3d0;
+  --accent: #34d399;
+}
+
+:root[data-theme="sunset"] {
+  color-scheme: dark;
+  --page-bg: radial-gradient(circle at 15% 25%, #3a0f1d 0, #2b0e22 35%, #140a1c 100%);
+  --surface-1: #2b1224;
+  --surface-2: #311429;
+  --border: #4b1738;
+  --text-main: #fde2ff;
+  --text-muted: #f0abfc;
+  --accent: #f97316;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--page-bg);
+  color: var(--text-main);
+}
+
+body {
+  --tw-ring-color: var(--border);
+}
 
 .layout { @apply min-h-screen grid md:grid-cols-[260px_1fr]; }
 .content { @apply p-6; }
 
-.panel { @apply rounded-2xl ring-1 ring-neutral-700 bg-neutral-800 text-neutral-100; }
-.panel-header { @apply text-sm text-neutral-300; }
-.input { @apply w-full rounded-lg bg-neutral-900 ring-1 ring-neutral-700 px-3 py-2 text-sm placeholder-neutral-500; }
-.select { @apply w-full rounded-lg bg-neutral-900 ring-1 ring-neutral-700 px-3 py-2 text-sm; }
-.btn { @apply inline-flex items-center justify-center rounded-lg ring-1 ring-neutral-700 bg-neutral-800 hover:bg-neutral-700 px-3 py-2 text-sm; }
-.btn-primary { @apply bg-indigo-600 hover:bg-indigo-500 ring-0 text-white; }
-.badge { @apply inline-flex items-center rounded-md bg-neutral-900 ring-1 ring-neutral-700 px-2 py-1 text-xs; }
+.panel {
+  @apply rounded-2xl ring-1;
+  background: var(--surface-2);
+  color: var(--text-main);
+  --tw-ring-color: var(--border);
+}
+.panel-header { @apply text-sm; color: var(--text-muted); }
+.input {
+  @apply w-full rounded-lg px-3 py-2 text-sm;
+  background: var(--surface-1);
+  color: var(--text-main);
+  --tw-ring-color: var(--border);
+}
+.input::placeholder { color: var(--text-muted); }
+.select {
+  @apply w-full rounded-lg px-3 py-2 text-sm;
+  background: var(--surface-1);
+  color: var(--text-main);
+  --tw-ring-color: var(--border);
+}
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg ring-1 px-3 py-2 text-sm transition;
+  background: var(--surface-2);
+  color: var(--text-main);
+  --tw-ring-color: var(--border);
+}
+.btn:hover { filter: brightness(1.08); }
+.btn-primary { background: var(--accent); color: #0b1221; --tw-ring-color: transparent; }
+.badge {
+  @apply inline-flex items-center rounded-md ring-1 px-2 py-1 text-xs;
+  background: var(--surface-1);
+  color: var(--text-main);
+  --tw-ring-color: var(--border);
+}
 .chart-card { @apply panel p-4; overflow: hidden; }
+
+/* Map common neutral backgrounds to theme surfaces so the theme applies everywhere */
+.bg-neutral-900 { background-color: var(--surface-1) !important; }
+.bg-neutral-800 { background-color: var(--surface-2) !important; }
+.text-neutral-200, .text-neutral-100 { color: var(--text-main) !important; }
+.text-neutral-400, .text-neutral-300 { color: var(--text-muted) !important; }
+.border-neutral-800, .border-neutral-700 { border-color: var(--border) !important; }
+.border-neutral-700\/60 { border-color: var(--border) !important; }
+.ring-neutral-700, .ring-neutral-700\/60 { --tw-ring-color: var(--border) !important; }
